@@ -1,6 +1,13 @@
 from flask import Flask, render_template, request
+import sqlite3
 
 app = Flask(__name__)
+
+
+def get_db():
+    connection = sqlite3.connect("diary.db")
+    connection.row_factory = sqlite3.Row
+    return connection
 
 
 @app.route("/")
@@ -29,7 +36,25 @@ def register():
         if password != confirm_password:
             return "Passwords do not match!"
 
-        return "Account created for: " + email
+        connection = get_db()
+
+        connection.execute(
+            "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, email TEXT UNIQUE, password TEXT)"
+        )
+
+        try:
+            connection.execute(
+                "INSERT INTO users (email, password) VALUES (?, ?)",
+                (email, password)
+            )
+            connection.commit()
+        except sqlite3.IntegrityError:
+            connection.close()
+            return "An account with this email already exists!"
+
+        connection.close()
+
+        return "Account created successfully!"
 
     return render_template("register.html")
 
