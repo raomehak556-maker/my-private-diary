@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 import sqlite3
+from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
 
@@ -36,16 +37,19 @@ def register():
         if password != confirm_password:
             return "Passwords do not match!"
 
+        password_hash = generate_password_hash(password)
+
         connection = get_db()
 
         connection.execute(
-            "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, email TEXT UNIQUE, password TEXT)"
+            "CREATE TABLE IF NOT EXISTS users "
+            "(id INTEGER PRIMARY KEY, email TEXT UNIQUE, password TEXT)"
         )
 
         try:
             connection.execute(
                 "INSERT INTO users (email, password) VALUES (?, ?)",
-                (email, password)
+                (email, password_hash)
             )
             connection.commit()
         except sqlite3.IntegrityError:
